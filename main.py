@@ -13,42 +13,80 @@ from kivy.uix.popup import Popup
 from kivy.uix.slider import Slider
 from kivy.uix.widget import Widget
 
-Window.size = (480, 853)
+Window.size = (400, 711)
+
+
+def define_circle(pos):
+    res = []
+    if 0 <= pos[1] <= Window.size[1] // 8:
+        res.append("1")
+    elif Window.size[1] // 8 <= pos[1] <= 2 * (Window.size[1] // 8):
+        res.append("2")
+    elif 2 * (Window.size[1] // 8) <= pos[1] <= 3 * (Window.size[1] // 8):
+        res.append("3")
+    elif 3 * (Window.size[1] // 8) <= pos[1] <= 4 * (Window.size[1] // 8):
+        res.append("4")
+    elif 4 * (Window.size[1] // 8) <= pos[1] <= 5 * (Window.size[1] // 8):
+        res.append("5")
+    elif 5 * (Window.size[1] // 8) <= pos[1] <= 6 * (Window.size[1] // 8):
+        res.append("6")
+    if 0 <= pos[0] <= Window.size[0] // 4:
+        res.append("G")
+    elif Window.size[0] // 4 <= pos[0] <= 2 * (Window.size[0] // 4):
+        res.append("Y")
+    elif 2 * (Window.size[0] // 4) <= pos[0] <= 3 * (Window.size[0] // 4):
+        res.append("B")
+    elif 3 * (Window.size[0] // 4) <= pos[0] <= Window.size[0]:
+        res.append("R")
+    return ''.join(res)
 
 
 class FieldWidget(Widget):
+    gamerposition = [[]]
+    moveposition = ''
+
     def __init__(self, **kwargs):
         super(FieldWidget, self).__init__(**kwargs)
         with self.canvas:
-            # for y in range(0, 100, 17):
-            # Сайз хинты не работают кста
-            for y in range(0, 3 * Window.size[1] // 4, Window.size[1] // 7):
+            for y in range(0, 5 * Window.size[1] // 8, Window.size[1] // 8):
                 Color(0, 1, 0)
-                # Ellipse(pos_hint={'x': 0, 'y': y / 100.0}, size_hint=(0.04, 0.04))
-                Ellipse(pos=(0, y), size_hint=(0.04, 0.04))
+                Ellipse(pos=(0, y), size_hint=(None, None), size=(Window.size[0] / 4, Window.size[1] // 8))
                 Color(1, 1, 0)
-                # Ellipse(pos_hint={'x': 0.33, 'y': y / 100.0}, size_hint=(0.04, 0.04))
-                Ellipse(pos=(Window.size[0] // 4, y), size_hint=(0.04, 0.04))
+                Ellipse(pos=(Window.size[0] // 4, y), size_hint=(None, None),
+                        size=(Window.size[0] // 4, Window.size[1] // 8))
                 Color(0, 0, 1)
-                # Ellipse(pos_hint={'x': 0.67, 'y': y / 100.0}, size_hint=(0.04, 0.04))
-                Ellipse(pos=(2 * Window.size[0] // 4, y), size_hint=(0.04, 0.04))
+                Ellipse(pos=(2 * Window.size[0] // 4, y), size_hint=(None, None),
+                        size=(Window.size[0] // 4, Window.size[1] // 8))
                 Color(1, 0, 0)
-                # Ellipse(pos_hint={'x': 1, 'y': y / 100.0}, size_hint=(0.04, 0.04))
-                Ellipse(pos=(3 * Window.size[0] // 4, y), size_hint=(0.04, 0.04))
+                Ellipse(pos=(3 * Window.size[0] // 4, y), size_hint=(None, None),
+                        size=(Window.size[0] // 4, Window.size[1] // 8))
+
+    def on_touch_down(self, touch):
+        self.moveposition = define_circle(touch.pos)
+
+    def on_touch_up(self, touch):
+        removeposition = define_circle(touch.pos)
+        if len(removeposition) == 2:
+            for player in self.gamerposition:
+                if removeposition in player:
+                    player[player.index(removeposition)] = ''
 
 
 class RouletteWidget(Widget):
+    colorp = Color(1, 1, 1, 1)
+
     def __init__(self, **kwargs):
         super(RouletteWidget, self).__init__(**kwargs)
         with self.canvas:
-            Color(1, 0, 0, 1)
+            Color(1, 1, 1, 1)
             self.roulette = Ellipse(pos=(Window.size[0] - 100, Window.size[1] - 100), size=(200, 200))
 
     def change_color(self):
         c = self.canvas
         c.clear()
         with c:
-            Color(rgba=random.choice([(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1), (1, 1, 0, 1)]))
+            self.colorp = random.choice([(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1), (1, 1, 0, 1)])
+            Color(rgba=self.colorp)
             self.roulette = Ellipse(pos=(Window.size[0] - 100, Window.size[1] - 100), size=(200, 200))
 
 
@@ -58,25 +96,27 @@ class MoveTimer(Label):
 
     def start(self):
         Animation.cancel_all(self)
-        self.anim = Animation(a=0, duration=self.a)
+        self.anim = Animation(a=0, duration=self.a) + Animation(a=self.a, duration=0)
 
         def finish_callback(*args):
             roulette.change_color()
             i = int(player_move.text[-1])
+            if len(field.moveposition) == 2:
+                field.gamerposition[i - 1][field.gamerposition[i - 1].index('')] = field.moveposition
             if i == self.players:  # and player 1,2,3 or who did not lose
                 player_move.text = "Player №1"
             else:
                 player_move.text = "Player №" + str(i + 1)
-            self.anim = Animation(a=0, duration=self.a)
 
-        self.anim.repeat = True  # ne rabotaet
-        self.anim.bind(on_complete=finish_callback)
+        self.anim.repeat = True
+        self.anim.bind(on_start=finish_callback)
         self.anim.start(self)
 
     def on_a(self, instance, value):
         self.text = str(round(value, 1)) + " seconds"
 
 
+field = FieldWidget(size_hint_y=0.875)
 timer = MoveTimer()
 roulette = RouletteWidget()
 player_move = Label(text="Player №..")
@@ -89,7 +129,7 @@ class TwisterApp(App):
 
     def build(self):
         screen = BoxLayout(orientation="vertical")
-        info = BoxLayout(orientation="horizontal", size_hint_y=0.125)
+        info = BoxLayout(orientation="horizontal", size_hint_y=0.15)
         move = BoxLayout(orientation="vertical")
         move.add_widget(timer)
         move.add_widget(player_move)
@@ -99,7 +139,6 @@ class TwisterApp(App):
         info.add_widget(settings)
         info.add_widget(roulette)
         screen.add_widget(info)
-        field = FieldWidget(size_hint_y=0.875)
         screen.add_widget(field)
         return screen
 
@@ -145,8 +184,10 @@ def show_popup():
     def change_values(instance):
         timer.a = time_slider.value
         timer.players = players_slider.value
+        roulette.change_color()
+        player_move.text = "Player №0"
+        field.gamerposition = [["" for x in range(fingers_slider.value)] for y in range(players_slider.value)]
         timer.start()
-        player_move.text = "Player №1"
 
     popup.bind(on_dismiss=change_values)
     popup.open()
