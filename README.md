@@ -14,4 +14,8 @@ a separate menu). The winner is the last player remaining in the field.
 - removes his finger not in his turn,
 - regardless of the move removes his finger, provided that not all fingers are on the field.
 ## Screenshots
-TODO: add screenshots
+![start](screenshots/start.jpg)
+
+![settings](screenshots/settings.jpg)
+
+![game](screenshots/game.jpg)
